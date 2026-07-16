@@ -1,0 +1,16 @@
+.venv/
+.uv-cache/
+.uv-python/
+.cache/
+.tools/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+pytest-cache-files-*/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.env
+.idea/
+.vscode/
