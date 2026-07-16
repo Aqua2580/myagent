@@ -74,6 +74,31 @@ append-only history    latest version + TTL
 
 详细实现、配置、迁移和验证方法见[Step 3持久化技术文档](STEP_03_PERSISTENCE.md)。
 
+## 运行服务层
+
+```text
+FastAPI / TaskRouter / Engine Adapter
+                |
+             RunService
+                |
+        RuntimeRepository
+         /              \
+   RunRecord       SQL Checkpoint
+         \              /
+          one SQL transaction
+                |
+        Redis post-commit cache
+```
+
+- `RunService`是FastAPI、Native与LangGraph适配器共享的唯一Run生命周期入口。
+- 新Run、进度保存和终态写入都把Run元数据与Checkpoint放在同一SQL事务中。
+- 一个Thread只能有一个`running`或`waiting_confirmation` Run，应用行锁与数据库部分唯一索引共同保证。
+- `engine`只在Run启动时写入，后续保存只接受Run上下文，不能重新选择引擎。
+- `RunSession`携带固定身份、Checkpoint版本和隔离的`ThreadState`快照；每次保存返回新版本。
+- Redis只在SQL提交后刷新，失败时不影响已提交的Run与Checkpoint事实。
+
+详细状态转换、事务语义、安全约束和测试证据见[Step 4运行服务文档](STEP_04_RUNTIME_SERVICE.md)。
+
 ### 本地Docker基础设施
 
 - Compose只承载PostgreSQL和Redis，应用容器在运行服务层稳定后加入。

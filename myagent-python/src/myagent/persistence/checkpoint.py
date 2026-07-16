@@ -13,6 +13,7 @@ from redis.exceptions import RedisError, WatchError
 from sqlalchemy import delete, select
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from myagent.config import Settings
 from myagent.domain import ThreadState
@@ -43,6 +44,10 @@ class CheckpointConflictError(RuntimeError):
     """Raised when optimistic checkpoint version validation fails."""
 
 
+class CheckpointOwnershipError(RuntimeError):
+    """Raised when a checkpoint attempts to change a thread owner."""
+
+
 class SqlCheckpointStore:
     """Append-only checkpoint archive backed by an async SQLAlchemy session."""
 
@@ -57,54 +62,71 @@ class SqlCheckpointStore:
     ) -> CheckpointEnvelope:
         """Append a snapshot and atomically advance the thread version."""
 
-        snapshot = state.model_copy(deep=True)
-        saved_at = datetime.now(UTC)
         async with self._session_factory() as session:
             try:
                 async with session.begin():
-                    thread = await session.get(
-                        ThreadRecord,
-                        snapshot.thread_id,
-                        with_for_update=True,
-                    )
-                    current_version = thread.current_checkpoint_version if thread else 0
-                    if expected_version is not None and expected_version != current_version:
-                        raise CheckpointConflictError(
-                            f"expected checkpoint version {expected_version}, "
-                            f"found {current_version}"
-                        )
-
-                    next_version = current_version + 1
-                    if thread is None:
-                        thread = ThreadRecord(
-                            thread_id=snapshot.thread_id,
-                            user_id=snapshot.user_id,
-                            status=snapshot.status.value,
-                            current_checkpoint_version=next_version,
-                            total_step_count=snapshot.total_step_count,
-                            created_at=snapshot.created_at,
-                            updated_at=snapshot.updated_at,
-                        )
-                        session.add(thread)
-                    else:
-                        thread.user_id = snapshot.user_id
-                        thread.status = snapshot.status.value
-                        thread.current_checkpoint_version = next_version
-                        thread.total_step_count = snapshot.total_step_count
-                        thread.updated_at = snapshot.updated_at
-
-                    session.add(
-                        CheckpointRecord(
-                            thread_id=snapshot.thread_id,
-                            version=next_version,
-                            state_schema_version=snapshot.schema_version,
-                            state_payload=snapshot.model_dump(mode="json"),
-                            created_at=saved_at,
-                        )
+                    envelope = await self.append_in_transaction(
+                        session,
+                        state,
+                        expected_version=expected_version,
                     )
             except IntegrityError as exc:
                 raise CheckpointConflictError("checkpoint version already exists") from exc
 
+        return envelope
+
+    async def append_in_transaction(
+        self,
+        session: AsyncSession,
+        state: ThreadState,
+        *,
+        expected_version: int | None = None,
+    ) -> CheckpointEnvelope:
+        """Append a checkpoint inside the caller's active SQL transaction."""
+
+        snapshot = state.model_copy(deep=True)
+        saved_at = datetime.now(UTC)
+        thread = await session.get(
+            ThreadRecord,
+            snapshot.thread_id,
+            with_for_update=True,
+        )
+        current_version = thread.current_checkpoint_version if thread else 0
+        if expected_version is not None and expected_version != current_version:
+            raise CheckpointConflictError(
+                f"expected checkpoint version {expected_version}, found {current_version}"
+            )
+
+        next_version = current_version + 1
+        if thread is None:
+            thread = ThreadRecord(
+                thread_id=snapshot.thread_id,
+                user_id=snapshot.user_id,
+                status=snapshot.status.value,
+                current_checkpoint_version=next_version,
+                total_step_count=snapshot.total_step_count,
+                created_at=snapshot.created_at,
+                updated_at=snapshot.updated_at,
+            )
+            session.add(thread)
+        else:
+            if thread.user_id != snapshot.user_id:
+                raise CheckpointOwnershipError("thread owner cannot be changed")
+            thread.status = snapshot.status.value
+            thread.current_checkpoint_version = next_version
+            thread.total_step_count = snapshot.total_step_count
+            thread.updated_at = snapshot.updated_at
+
+        session.add(
+            CheckpointRecord(
+                thread_id=snapshot.thread_id,
+                version=next_version,
+                state_schema_version=snapshot.schema_version,
+                state_payload=snapshot.model_dump(mode="json"),
+                created_at=saved_at,
+            )
+        )
+        await session.flush()
         return CheckpointEnvelope(version=next_version, state=snapshot, saved_at=saved_at)
 
     async def load(self, thread_id: UUID) -> CheckpointEnvelope | None:
@@ -255,11 +277,16 @@ class Checkpointer:
         expected_version: int | None = None,
     ) -> CheckpointEnvelope:
         envelope = await self._store.save(state, expected_version=expected_version)
+        await self.publish(envelope)
+        return envelope
+
+    async def publish(self, envelope: CheckpointEnvelope) -> None:
+        """Publish an already committed SQL checkpoint to the hot cache."""
+
         try:
             await self._cache.put(envelope)
         except RedisError:
             logger.warning("Redis checkpoint refresh failed", exc_info=True)
-        return envelope
 
     async def load_hot(self, thread_id: UUID) -> CheckpointEnvelope | None:
         """Load Redis first and fall back to the durable SQL archive."""

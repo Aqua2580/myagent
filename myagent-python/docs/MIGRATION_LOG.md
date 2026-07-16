@@ -183,8 +183,9 @@ Step 4将建立运行服务层，把ThreadState、Checkpointer、Run生命周期
 - 本地配置初始化时间：2026-07-16 14:54:18 +08:00（北京时间）
 - 最终静态验收时间：2026-07-16 14:58:15 +08:00（北京时间）
 - GitHub发布时间：2026-07-16 14:59:41 +08:00（北京时间）
+- 运行验收暂缓时间：2026-07-16 15:42:58 +08:00（北京时间）
 - 配置状态：完成并发布，置信度98%
-- 运行状态：等待Docker Desktop
+- 运行状态：Docker Desktop已安装，WSL更新受本机Windows更新服务配置阻塞；用户决定暂缓真实服务验收并继续Step 4
 
 ### 完成内容
 
@@ -215,10 +216,12 @@ Step 4将建立运行服务层，把ThreadState、Checkpointer、Run生命周期
 - [ ] 真实Alembic迁移与Checkpointer集成测试
 - [x] 更新GitHub草稿PR，核心提交`41e8671`
 
-### 用户动作
+### 遗留运行门禁
 
-- 安装Docker Desktop并启用Linux containers/WSL 2后端。
-- 安装完成后通知我继续运行验收；无需向我提供任何密码。
+- Docker Desktop与CLI已经安装，Windows虚拟化组件已启用。
+- Docker后端要求更新WSL，但本机Windows Update、BITS和Update Orchestrator服务处于禁用状态，当前非管理员开发会话无法完成更新。
+- PostgreSQL/Redis健康检查、真实Alembic迁移和真实Checkpointer集成测试继续保留为部署前强制门禁。
+- 2026-07-16 15:42:58 +08:00，用户明确决定暂时跳过Docker运行验收，先进入Step 4。
 
 ### 详细文档
 
@@ -229,6 +232,62 @@ Step 4将建立运行服务层，把ThreadState、Checkpointer、Run生命周期
 - 分支：`agent/python-initial-scaffold`
 - 核心提交：`41e8671`（安全Docker基础设施服务）
 - 草稿PR：`https://github.com/Aqua2580/myagent/pull/1`
+
+## Step 4：Thread与Run运行服务层
+
+- 开始时间：2026-07-16 15:42:58 +08:00（北京时间）
+- 核心代码完成时间：2026-07-16 15:48:01 +08:00（北京时间）
+- 行为测试完成时间：2026-07-16 15:49:30 +08:00（北京时间）
+- Schema漂移检查加入时间：2026-07-16 15:50:16 +08:00（北京时间）
+- 首轮完整验收时间：2026-07-16 15:50:37 +08:00（北京时间）
+- 文档初稿完成时间：2026-07-16 15:51:57 +08:00（北京时间）
+- 最终完整验收时间：2026-07-16 15:55:06 +08:00（北京时间）
+- 状态：代码、文档与自动化验收完成，等待GitHub发布
+- 当前置信度：97%
+
+### 技术决策
+
+- `RunService`统一承接FastAPI、Native与LangGraph适配器的生命周期调用。
+- Run元数据与对应Checkpoint必须在同一SQL事务提交，Redis在提交后尽力刷新。
+- 同一Thread只能存在一个`running`或`waiting_confirmation` Run。
+- 引擎只在Run启动时选择，后续方法不能重新传入引擎。
+- TaskRouter不属于运行服务；它下一步负责选择，运行服务负责固化选择。
+
+### 完成内容
+
+- 新增严格的`StartRunCommand`、`RunSession`和`EngineKind`。
+- 实现新建/继续Thread、保存进度、完成、失败、取消和恢复Run。
+- 实现Run/State身份、Thread所有权和Checkpoint版本校验。
+- 重构SQL Checkpoint，使其可加入平台调用方事务。
+- 增加Run状态Check Constraint和单Thread单活跃Run部分唯一索引。
+- 增加明确的服务层异常，避免向上暴露数据库实现异常。
+
+### 验证清单
+
+- [x] Run启动、进度、等待确认、恢复和终态
+- [x] Run与Checkpoint单SQL事务
+- [x] 固定引擎不可切换
+- [x] 同Thread第二个活跃Run拒绝，终态后可创建下一Run
+- [x] 所有权、Run/State身份和乐观版本保护
+- [x] Redis发布与durable回源
+- [x] Alembic升级、回滚、Schema漂移检查和PostgreSQL离线SQL
+- [x] pytest：33项通过
+- [x] Ruff：通过
+- [x] mypy严格模式：16个源文件通过
+- [x] `uv lock --check`：通过
+
+### 环境限制
+
+- Docker真实PostgreSQL/Redis验收按用户要求暂缓，Step 4当前使用SQLite和FakeRedis验证事务行为。
+- 真实PostgreSQL迁移、行锁并发和Redis认证仍是部署前强制门禁。
+
+### 详细文档
+
+- `docs/STEP_04_RUNTIME_SERVICE.md`
+
+### 下一步
+
+Step 5实现可解释TaskRouter和统一Engine Protocol：显式模式优先、确定性规则评分其次、结构化模型分类兜底；路由结果进入RunService后固定不变。
 
 ## Repository Step：双目录重组
 

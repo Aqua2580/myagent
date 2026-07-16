@@ -8,8 +8,9 @@
 - 本地密钥与应用配置初始化时间：2026-07-16 14:54:18 +08:00（北京时间）
 - 最终静态验收时间：2026-07-16 14:58:15 +08:00（北京时间）
 - GitHub发布时间：2026-07-16 14:59:41 +08:00（北京时间）
+- 运行验收暂缓时间：2026-07-16 15:42:58 +08:00（北京时间）
 - 配置状态：完成并发布，配置置信度98%
-- 运行状态：等待安装Docker Desktop后启动并做真实服务验收
+- 运行状态：Docker Desktop已安装，但WSL运行时更新受本机Windows更新服务配置阻塞；按用户要求暂缓真实服务验收，继续Step 4
 - 核心提交：`41e8671`（安全Docker基础设施服务）
 - 草稿PR：`https://github.com/Aqua2580/myagent/pull/1`
 
@@ -197,9 +198,11 @@ docker compose --env-file docker/.env up -d
 - 实际密钥文件经`git check-ignore`确认不会提交。
 - 高置信度敏感凭据模式扫描命中0个。
 
-## 9. 尚需用户完成
+## 9. 尚未完成的运行验收
 
-当前机器没有Docker命令和Docker daemon。请安装Docker Desktop；安装完成后告诉我，我会继续：
+Docker Desktop与Docker CLI已经安装，但Docker后端日志明确报告`WSL update required`。本机的Windows Update、BITS和Update Orchestrator服务处于禁用状态，当前非管理员开发会话无法恢复这些服务。2026-07-16 15:42:58 +08:00，用户决定暂时跳过Docker运行验收，先继续Step 4。
+
+该决定不影响SQLite/FakeRedis自动化测试或运行服务层开发，但以下事项仍是进入真实部署前的强制门禁：
 
 1. 启动PostgreSQL和Redis。
 2. 等待两个服务健康。

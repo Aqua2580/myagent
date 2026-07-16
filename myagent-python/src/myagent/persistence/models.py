@@ -18,6 +18,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     Uuid,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -87,7 +88,19 @@ class RunRecord(Base):
     __tablename__ = "agent_runs"
     __table_args__ = (
         Index("ix_agent_runs_thread_started", "thread_id", "started_at"),
+        Index(
+            "uq_agent_runs_thread_active",
+            "thread_id",
+            unique=True,
+            postgresql_where=text("status IN ('running', 'waiting_confirmation')"),
+            sqlite_where=text("status IN ('running', 'waiting_confirmation')"),
+        ),
         CheckConstraint("engine IN ('native', 'langgraph')", name="known_engine"),
+        CheckConstraint(
+            "status IN ('running', 'waiting_confirmation', 'completed', "
+            "'partial_completed', 'error', 'cancelled')",
+            name="known_status",
+        ),
     )
 
     run_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
@@ -101,9 +114,7 @@ class RunRecord(Base):
     request_payload: Mapped[dict[str, Any]] = mapped_column(
         JSON_PAYLOAD, default=dict, nullable=False
     )
-    result_payload: Mapped[dict[str, Any] | None] = mapped_column(
-        JSON_PAYLOAD, nullable=True
-    )
+    result_payload: Mapped[dict[str, Any] | None] = mapped_column(JSON_PAYLOAD, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False
@@ -124,9 +135,7 @@ class CheckpointRecord(Base):
         Index("ix_agent_checkpoints_thread_created", "thread_id", "created_at"),
     )
 
-    checkpoint_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True), primary_key=True, default=uuid4
-    )
+    checkpoint_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
     thread_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("agent_threads.thread_id", ondelete="CASCADE"),

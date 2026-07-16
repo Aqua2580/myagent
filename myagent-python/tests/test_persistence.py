@@ -34,9 +34,7 @@ EXPECTED_TABLES = {"agent_threads", "agent_runs", "agent_checkpoints"}
 
 
 def load_state() -> ThreadState:
-    payload = json.loads(
-        (FIXTURES / "thread_state_completed.json").read_text(encoding="utf-8")
-    )
+    payload = json.loads((FIXTURES / "thread_state_completed.json").read_text(encoding="utf-8"))
     return ThreadState.model_validate(payload)
 
 
@@ -185,6 +183,7 @@ def test_alembic_upgrade_and_downgrade_on_sqlite(
 
     command.upgrade(config, "head")
     assert asyncio.run(read_table_names(database_url)) == EXPECTED_TABLES | {"alembic_version"}
+    command.check(config)
 
     command.downgrade(config, "base")
     assert asyncio.run(read_table_names(database_url)) == {"alembic_version"}

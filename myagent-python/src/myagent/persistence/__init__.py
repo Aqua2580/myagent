@@ -4,6 +4,7 @@ from myagent.persistence.checkpoint import (
     CheckpointConflictError,
     CheckpointEnvelope,
     Checkpointer,
+    CheckpointOwnershipError,
     RedisCheckpointCache,
     SqlCheckpointStore,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "Base",
     "CheckpointConflictError",
     "CheckpointEnvelope",
+    "CheckpointOwnershipError",
     "CheckpointRecord",
     "Checkpointer",
     "Database",
