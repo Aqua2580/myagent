@@ -53,7 +53,7 @@ Step 2建立Python原生领域模型和状态Fixture，包括AgentStatus、ChatM
 ## Step 2：Python原生领域模型与状态Fixture
 
 - 日期：2026-07-16
-- 状态：完成并通过自动化验证，等待发布
+- 状态：完成、通过自动化验证并发布至GitHub草稿PR
 - 置信度：97%
 
 ### 决策变更
@@ -84,13 +84,19 @@ Step 2建立Python原生领域模型和状态Fixture，包括AgentStatus、ChatM
 - [x] Ruff：全部通过
 - [x] mypy：严格模式通过，7个源文件无问题
 - [x] 新增内容高置信度敏感密钥模式扫描命中0个
-- [ ] 更新GitHub草稿PR
+- [x] 更新GitHub草稿PR，核心提交`2d1f264`
 
 ### 验证说明
 
 - 两组Python原生Fixture覆盖完成态、等待确认态、工具调用、工具结果、审计记录和Token统计。
 - 序列化专项测试确认输出只使用snake_case字段和小写枚举，并可恢复UUID与带时区datetime。
 - FastAPI TestClient仍有一条已记录的上游Starlette弃用提示，与领域模型无关，不影响测试通过。
+
+### 发布结果
+
+- 分支：`agent/python-initial-scaffold`
+- 核心提交：`2d1f264`（Python原生运行状态模型）
+- 草稿PR：`https://github.com/Aqua2580/myagent/pull/1`
 
 ### 下一步
 
