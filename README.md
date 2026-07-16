@@ -1,10 +1,10 @@
 # MyAgent
 
-本仓库用于并行保存MyAgent的Java基线版本和Python迁移版本。
+本仓库发布MyAgent的Python迁移版本。本地工作区同时保留Java基线用于迁移参照，但Java目录被Git整体忽略，不会上传。
 
 ```text
 myagent/
-├── myagent-java/    # 原Java项目，仅作为迁移参照和兼容基线
+├── myagent-java/    # 仅本地存在，已被Git忽略
 └── myagent-python/  # Python双引擎实现
 ```
 

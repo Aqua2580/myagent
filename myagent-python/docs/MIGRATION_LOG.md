@@ -82,8 +82,9 @@ Step 2将建立Java/Python兼容的领域模型和状态Fixture，包括AgentSta
 
 ### 当前发布阻塞
 
-- GitHub CLI识别到`Aqua2580`账户，但系统Keyring中的Token已经失效。
-- 需要先执行`gh auth refresh -h github.com`重新授权；在认证有效前不暂存、提交或推送文件。
+- 已在正常联网环境确认GitHub CLI登录有效，账户为`Aqua2580`，具备`repo`和`workflow`权限。
+- 此前的“Token invalid”是受限执行环境将API请求导向不可用代理`127.0.0.1:9`产生的误报，不是Token实际失效。
+- GitHub认证阻塞已解除。
 
 ## Repository Step：忽略Java基线目录
 
