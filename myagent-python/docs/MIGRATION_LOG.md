@@ -102,6 +102,72 @@ Step 2建立Python原生领域模型和状态Fixture，包括AgentStatus、ChatM
 
 Step 3将建立Python原生SQLAlchemy实体、Redis Checkpointer与独立Alembic Schema。
 
+## Step 3：PostgreSQL、Redis与Checkpoint持久化
+
+- 开始时间：2026-07-16 14:19:50 +08:00（北京时间）
+- 代码完成时间：2026-07-16 14:27:59 +08:00（北京时间）
+- 首轮完整验收时间：2026-07-16 14:28:25 +08:00（北京时间）
+- 最终验收时间：2026-07-16 14:33:14 +08:00（北京时间）
+- 状态：实现和最终审计完成，等待GitHub发布
+- 置信度：96%
+
+### 技术决策
+
+- 生产数据库采用PostgreSQL，异步驱动采用asyncpg。
+- 数据访问采用SQLAlchemy 2.0 AsyncSession。
+- PostgreSQL是持久化事实源，Redis是带TTL的最新状态热缓存。
+- Python使用独立Alembic Schema，不兼容或修改Java数据表。
+- PostgreSQL JSON字段使用JSONB；SQLite JSON只用于测试。
+
+### 完成内容
+
+- 建立`agent_threads`、`agent_runs`和`agent_checkpoints`三张Python原生表。
+- 建立数据库连接池与异步Session工厂。
+- 建立追加式SQL Checkpoint、单调版本和乐观并发冲突检测。
+- 建立Redis `CheckpointEnvelope`、TTL、版本保护和损坏缓存清理。
+- 建立Redis优先读取、SQL回源和缓存回填。
+- 建立`load_durable()`用于恢复、审计和一致性敏感读取。
+- 建立可升级和回滚的Alembic初始迁移。
+- 增加连接串`SecretStr`保护和完整环境变量示例。
+
+### 子步骤时间
+
+- 依赖锁定：2026-07-16 14:20:31 +08:00。
+- SQLAlchemy实体与Checkpointer最终代码：2026-07-16 14:27:46 +08:00。
+- Alembic迁移与测试最终代码：2026-07-16 14:27:59 +08:00。
+- 22项测试与Alembic Schema漂移检查最终通过：2026-07-16 14:33:14 +08:00。
+
+### 验证清单
+
+- [x] SQL Checkpoint保存、递增、往返和删除
+- [x] 乐观并发版本冲突
+- [x] Checkpoint深拷贝隔离
+- [x] Redis版本保护、TTL和损坏缓存清理
+- [x] Redis未命中时SQL回源与缓存回填
+- [x] Redis刷新失败时SQL持久化不受影响
+- [x] SQLite Alembic升级和回滚
+- [x] Alembic check：ORM Metadata与迁移无Schema漂移
+- [x] PostgreSQL离线SQL包含UUID和JSONB
+- [x] Settings不泄露数据库或Redis连接串
+- [x] pytest：22项全部通过
+- [x] Ruff：全部通过
+- [x] mypy：严格模式通过，11个源文件无问题
+- [x] 最终敏感信息、Schema差异和Git范围审计
+- [ ] 更新GitHub草稿PR
+
+### 环境限制
+
+- 当前机器未安装Docker，也没有提供真实PostgreSQL/Redis测试地址，因此尚未执行真实服务集成测试。
+- 当前不需要用户提供密钥；进入部署集成时需要测试环境连接地址，或安装Docker运行隔离服务。
+
+### 详细文档
+
+- `docs/STEP_03_PERSISTENCE.md`
+
+### 下一步
+
+Step 4将建立运行服务层，把ThreadState、Checkpointer、Run生命周期和固定引擎选择组合成可供FastAPI与两种执行引擎调用的平台接口。
+
 ## Repository Step：双目录重组
 
 - 日期：2026-07-16

@@ -11,16 +11,20 @@ MyAgent 是面向Python生态重新设计的Agent平台，不承担Java接口、
 
 ## 当前进度
 
-已完成工程骨架和Python原生运行状态模型：
+已完成工程骨架、Python原生运行状态和持久化基础设施：
 
 - FastAPI 应用工厂
 - 类型安全的基础配置
 - `/health/live` 和 `/health/ready`
 - 基础自动化测试与静态检查配置
 - Pydantic严格领域模型、Python原生状态Fixture与序列化约束
+- PostgreSQL、SQLAlchemy异步会话和独立Alembic Schema
+- Redis热状态缓存、SQL追加式Checkpoint与乐观版本控制
 - 持续更新的迁移日志
 
 详细记录见 [迁移日志](docs/MIGRATION_LOG.md)。
+
+Step 3的表结构、一致性策略、迁移和故障处理见[持久化技术文档](docs/STEP_03_PERSISTENCE.md)。
 
 ## 本地运行
 
@@ -44,6 +48,16 @@ uv run pytest
 uv run ruff check .
 uv run mypy
 ```
+
+## 数据库迁移
+
+配置`MYAGENT_DATABASE_URL`后执行：
+
+```powershell
+uv run alembic upgrade head
+```
+
+默认生产技术栈是PostgreSQL + asyncpg + Redis asyncio。SQLite和FakeRedis只用于快速自动化测试。
 
 ## 安全约定
 

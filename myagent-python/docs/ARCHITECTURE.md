@@ -38,3 +38,38 @@ Model Gateway / Tool Registry / Guardrail / RAG / Memory / Audit
 - 可选择复用MySQL、Redis、Milvus和Elasticsearch基础设施，但使用独立命名空间和迁移版本。
 - Java目录只作为本地业务参考，不参与构建、测试、提交或运行。
 
+## 持久化架构
+
+```text
+NativeAgentEngine / LangGraphAgentEngine
+                |
+          Platform Checkpointer
+            /            \
+PostgreSQL durable     Redis hot cache
+append-only history    latest version + TTL
+```
+
+### PostgreSQL职责
+
+- 使用SQLAlchemy 2.0异步会话和asyncpg驱动。
+- `agent_threads`保存线程身份、当前状态摘要和Checkpoint版本。
+- `agent_runs`保存每次Run固定的引擎选择、时间线和结果摘要。
+- `agent_checkpoints`保存追加式完整状态，状态字段在PostgreSQL中使用JSONB。
+- `(thread_id, version)`唯一约束和行锁共同实现乐观并发控制。
+- Alembic独立维护Python Schema，不读取或修改Java数据库表。
+
+### Redis职责
+
+- Redis只保存活跃线程的最新`CheckpointEnvelope`，不是持久化事实源。
+- Key包含显式版本前缀和thread UUID，并设置TTL。
+- 使用`WATCH/MULTI/EXEC`阻止旧版本覆盖新版本。
+- 缓存损坏或未命中时回源PostgreSQL并重新回填。
+
+### 一致性与故障语义
+
+- 保存顺序固定为“先提交PostgreSQL，再刷新Redis”。
+- PostgreSQL失败时整个保存失败；Redis失败时保留数据库结果并记录降级警告。
+- 活跃执行使用Redis优先的`load_hot()`；恢复和审计使用绕过缓存的`load_durable()`。
+- 平台Checkpoint保存公共RunState；LangGraph内部节点状态只能通过适配器引用平台Run，不能绕过平台工具、安全和审计边界。
+
+详细实现、配置、迁移和验证方法见[Step 3持久化技术文档](STEP_03_PERSISTENCE.md)。

@@ -5,14 +5,20 @@ description = "Python-native agent platform with a native runtime and LangGraph 
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
 dependencies = [
+    "alembic>=1.14,<2",
+    "asyncpg>=0.29,<1",
     "fastapi>=0.115,<1",
     "pydantic-settings>=2.7,<3",
     "python-dotenv>=1.0,<2",
+    "redis>=5,<7",
+    "sqlalchemy[asyncio]>=2,<3",
     "uvicorn[standard]>=0.34,<1",
 ]
 
 [dependency-groups]
 dev = [
+    "aiosqlite>=0.20,<1",
+    "fakeredis>=2.27,<3",
     "httpx>=0.28,<1",
     "mypy>=1.14,<2",
     "pytest>=8.3,<10",
