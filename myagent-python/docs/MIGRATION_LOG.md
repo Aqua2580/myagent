@@ -5,7 +5,7 @@
 ## Step 1：Python工程骨架
 
 - 日期：2026-07-16
-- 状态：本地实现与自动化验证完成，等待GitHub发布
+- 状态：完成并发布至GitHub草稿PR
 - 置信度：96%
 
 ### 完成内容
@@ -33,7 +33,7 @@
 - [x] `uv run ruff check .`：全部通过
 - [x] `uv run mypy`：严格模式通过，5个源文件无问题
 - [x] 确认原项目除新增目录外没有产生新的变更
-- [ ] 发布到`Aqua2580/myagent`
+- [x] 发布到`Aqua2580/myagent`
 
 ### 验证说明
 
@@ -54,7 +54,7 @@ Step 2将建立Java/Python兼容的领域模型和状态Fixture，包括AgentSta
 ## Repository Step：双目录重组
 
 - 日期：2026-07-16
-- 状态：目录重组与新仓库初始化完成，等待GitHub认证后发布
+- 状态：完成并发布至GitHub草稿PR
 - 置信度：97%
 
 ### 完成内容
@@ -78,13 +78,21 @@ Step 2将建立Java/Python兼容的领域模型和状态Fixture，包括AgentSta
 - [x] 根级规则忽略Java`.env`和双方构建环境
 - [x] 初始化新Git仓库并绑定`Aqua2580/myagent`
 - [x] 提交候选文件共446个，敏感密钥模式扫描命中0个
-- [ ] 完成GitHub CLI认证、提交和推送
+- [x] 完成GitHub CLI认证、提交和推送
 
 ### 当前发布阻塞
 
 - 已在正常联网环境确认GitHub CLI登录有效，账户为`Aqua2580`，具备`repo`和`workflow`权限。
 - 此前的“Token invalid”是受限执行环境将API请求导向不可用代理`127.0.0.1:9`产生的误报，不是Token实际失效。
 - GitHub认证阻塞已解除。
+
+### 发布结果
+
+- 分支：`agent/python-initial-scaffold`
+- 基线提交：`6a695e9`（Python工程骨架）
+- 文档提交：`512869c`（Python-only仓库范围）
+- 草稿PR：`https://github.com/Aqua2580/myagent/pull/1`
+- 远端`main`未被覆盖，Python改动通过草稿PR进入评审流程。
 
 ## Repository Step：忽略Java基线目录
 
