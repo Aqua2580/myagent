@@ -242,7 +242,8 @@ Step 4将建立运行服务层，把ThreadState、Checkpointer、Run生命周期
 - 首轮完整验收时间：2026-07-16 15:50:37 +08:00（北京时间）
 - 文档初稿完成时间：2026-07-16 15:51:57 +08:00（北京时间）
 - 最终完整验收时间：2026-07-16 15:55:06 +08:00（北京时间）
-- 状态：代码、文档与自动化验收完成，等待GitHub发布
+- GitHub发布时间：2026-07-16 15:56:55 +08:00（北京时间）
+- 状态：完成并发布至GitHub草稿PR
 - 当前置信度：97%
 
 ### 技术决策
@@ -284,6 +285,12 @@ Step 4将建立运行服务层，把ThreadState、Checkpointer、Run生命周期
 ### 详细文档
 
 - `docs/STEP_04_RUNTIME_SERVICE.md`
+
+### 发布结果
+
+- 分支：`agent/python-initial-scaffold`
+- 核心提交：`f9863f6`（事务化Python运行服务层）
+- 草稿PR：`https://github.com/Aqua2580/myagent/pull/1`
 
 ### 下一步
 
