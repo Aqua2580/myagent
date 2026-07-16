@@ -189,7 +189,7 @@ uv run alembic downgrade base
 
 ## 10. 当前限制与上线前动作
 
-当前机器没有安装Docker，也没有可用的PostgreSQL/Redis服务，因此本步骤没有执行真实服务集成测试。现有测试已验证SQLAlchemy事务逻辑、迁移升级/回滚、PostgreSQL方言SQL编译和Redis协议行为，但上线前仍必须增加：
+Docker Compose配置、随机密钥和本地应用连接配置已经建立，但当前机器没有安装Docker Desktop，因此本步骤仍未执行真实服务集成测试。现有测试已验证SQLAlchemy事务逻辑、迁移升级/回滚、PostgreSQL方言SQL编译、Redis协议行为和Compose语义，但上线前仍必须增加：
 
 1. 对目标PostgreSQL版本执行真实`alembic upgrade head`和回滚演练。
 2. 对目标Redis执行连接、认证、TLS、TTL和故障恢复测试。
@@ -197,7 +197,7 @@ uv run alembic downgrade base
 4. 通过云密钥服务或部署平台注入真实连接串。
 5. 增加定期备份、Checkpoint保留周期和历史清理任务。
 
-当前不需要用户提供密钥。进入真实环境集成阶段时，需要用户提供测试环境PostgreSQL/Redis地址，或安装Docker以启动隔离的本地服务。
+本地随机密钥已经安全生成，用户不需要提供密钥。下一步需要用户安装Docker Desktop；安装后即可启动隔离的PostgreSQL和Redis并完成真实集成验收。具体见`docs/STEP_03_1_DOCKER_INFRASTRUCTURE.md`。
 
 ## 11. 本步骤文件
 

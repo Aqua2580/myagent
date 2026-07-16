@@ -26,6 +26,8 @@ MyAgent 是面向Python生态重新设计的Agent平台，不承担Java接口、
 
 Step 3的表结构、一致性策略、迁移和故障处理见[持久化技术文档](docs/STEP_03_PERSISTENCE.md)。
 
+PostgreSQL和Redis的本地容器、密钥生成与运维说明见[Docker基础设施文档](docs/STEP_03_1_DOCKER_INFRASTRUCTURE.md)。
+
 ## 本地运行
 
 ```powershell
@@ -58,6 +60,19 @@ uv run alembic upgrade head
 ```
 
 默认生产技术栈是PostgreSQL + asyncpg + Redis asyncio。SQLite和FakeRedis只用于快速自动化测试。
+
+## Docker基础设施
+
+安装Docker Desktop后，在`myagent-python/`目录执行：
+
+```powershell
+.\scripts\setup_docker.ps1
+docker compose --env-file docker/.env up -d
+docker compose --env-file docker/.env ps
+uv run alembic upgrade head
+```
+
+初始化脚本生成的密码、实际Redis配置和应用`.env`均被Git忽略，不会上传GitHub。不要使用`docker compose down -v`，除非明确要永久删除本地数据。
 
 ## 安全约定
 

@@ -12,5 +12,8 @@ pytest-cache-files-*/
 .coverage
 htmlcov/
 .env
+docker/secrets/postgres_password.txt
+docker/secrets/redis.conf
+docker/.env.app.generated
 .idea/
 .vscode/

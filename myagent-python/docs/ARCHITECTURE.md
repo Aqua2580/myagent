@@ -73,3 +73,13 @@ append-only history    latest version + TTL
 - 平台Checkpoint保存公共RunState；LangGraph内部节点状态只能通过适配器引用平台Run，不能绕过平台工具、安全和审计边界。
 
 详细实现、配置、迁移和验证方法见[Step 3持久化技术文档](STEP_03_PERSISTENCE.md)。
+
+### 本地Docker基础设施
+
+- Compose只承载PostgreSQL和Redis，应用容器在运行服务层稳定后加入。
+- 数据库和缓存使用固定官方镜像、命名卷、健康检查和内部网络。
+- 宿主机端口只绑定`127.0.0.1`，避免开发服务暴露到局域网。
+- PostgreSQL密码和Redis实际配置通过未提交的secret文件挂载。
+- Redis缓存启用AOF和LRU淘汰；即使缓存被淘汰，Checkpoint仍可从PostgreSQL恢复。
+
+详细安装、安全、启动和运维方法见[Docker基础设施文档](STEP_03_1_DOCKER_INFRASTRUCTURE.md)。

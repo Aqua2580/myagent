@@ -175,6 +175,54 @@ Step 3将建立Python原生SQLAlchemy实体、Redis Checkpointer与独立Alembic
 
 Step 4将建立运行服务层，把ThreadState、Checkpointer、Run生命周期和固定引擎选择组合成可供FastAPI与两种执行引擎调用的平台接口。
 
+## Infrastructure Step 3.1：Docker PostgreSQL与Redis
+
+- 开始时间：2026-07-16 14:46:09 +08:00（北京时间）
+- Compose代码完成时间：2026-07-16 14:49:59 +08:00（北京时间）
+- Compose语义验证时间：2026-07-16 14:52:41 +08:00（北京时间）
+- 本地配置初始化时间：2026-07-16 14:54:18 +08:00（北京时间）
+- 最终静态验收时间：2026-07-16 14:58:15 +08:00（北京时间）
+- 配置状态：完成，置信度98%
+- 运行状态：等待Docker Desktop
+
+### 完成内容
+
+- 固定官方PostgreSQL 18.4和Redis 8.8 Alpine镜像。
+- PostgreSQL 18使用正确的新PGDATA挂载目录和数据页校验和。
+- Redis启用密码、Protected Mode、AOF、RDB和LRU淘汰。
+- 两个服务均配置健康检查、日志轮转、优雅停止和命名卷。
+- 端口只绑定`127.0.0.1`，服务使用内部Docker网络。
+- PostgreSQL密码和Redis实际配置通过未提交的secret文件挂载。
+- 增加PowerShell安全初始化脚本，生成256位随机密码且默认拒绝覆盖。
+- 自动生成脱敏的Python本地连接配置。
+
+### 验证清单
+
+- [x] PyYAML解析Compose
+- [x] Docker配置测试：6项通过
+- [x] 项目完整pytest：28项全部通过
+- [x] Ruff、mypy严格模式和uv锁文件检查
+- [x] Docker Compose 5.3.1官方二进制SHA256校验
+- [x] `compose config --quiet`语义验证
+- [x] 解析服务只有PostgreSQL和Redis
+- [x] 解析镜像版本与固定标签一致
+- [x] 实际密钥文件全部命中Git忽略规则
+- [x] Settings加载本地连接串且日志脱敏
+- [x] 高置信度敏感凭据模式扫描命中0个
+- [ ] Docker daemon启动服务
+- [ ] PostgreSQL和Redis健康检查
+- [ ] 真实Alembic迁移与Checkpointer集成测试
+- [ ] 更新GitHub草稿PR
+
+### 用户动作
+
+- 安装Docker Desktop并启用Linux containers/WSL 2后端。
+- 安装完成后通知我继续运行验收；无需向我提供任何密码。
+
+### 详细文档
+
+- `docs/STEP_03_1_DOCKER_INFRASTRUCTURE.md`
+
 ## Repository Step：双目录重组
 
 - 日期：2026-07-16
