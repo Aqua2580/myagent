@@ -51,6 +51,48 @@
 
 Step 2将建立Java/Python兼容的领域模型和状态Fixture，包括AgentStatus、ChatMessage、ToolCall、TokenUsage与ThreadState。
 
+## Step 2：Java兼容领域模型与状态Fixture
+
+- 日期：2026-07-16
+- 状态：完成并通过自动化验证
+- 置信度：96%
+
+### 完成内容
+
+- 建立AgentStatus、MessageType、TodoStatus枚举。
+- 建立ChatMessage、ToolCallData、ToolResponseData与ToolCallRecord。
+- 建立TokenUsage、TodoItem和ThreadState。
+- 所有持久化字段使用Java camelCase，同时允许Python snake_case构造。
+- 支持ISO-8601和Jackson数值时间戳。
+- 将Python专用runStepCount放入metadata，避免增加Java未知顶层字段。
+- 保留未知扩展字段，支持滚动迁移期间的前后兼容。
+- 增加COMPLETED和WAITING_CONFIRMATION两组Java形状Fixture。
+
+### 验证清单
+
+- [x] Java COMPLETED状态读取与往返
+- [x] Java WAITING_CONFIRMATION状态读取与往返
+- [x] Tool Call和Tool Response语义保持
+- [x] 未知扩展字段保持
+- [x] camelCase输出且保留显式null
+- [x] runStepCount与累计stepCount分离
+- [x] pytest：14项全部通过
+- [x] Ruff：全部通过
+- [x] mypy：严格模式通过，7个源文件无问题
+- [x] 序列化专项审计通过，Python顶层字段未泄漏
+- [x] 新增内容敏感密钥模式扫描命中0个
+- [ ] 更新GitHub草稿PR
+
+### 验证说明
+
+- Fixture依据Java领域类、Jackson字段命名和现有`ThreadStateSerializationTest`构造，覆盖ISO与数值时间戳。
+- 当前环境没有Java/Maven运行时，因此本步骤没有现场生成新的Java JSON；这一限制保留为后续跨语言合约CI的增强项。
+- FastAPI TestClient仍有已记录的上游Starlette弃用提示，与本步骤领域模型无关。
+
+### 下一步
+
+Step 3将迁移MySQL实体、Redis热状态和MySQL冷归档Checkpointer。
+
 ## Repository Step：双目录重组
 
 - 日期：2026-07-16

@@ -23,6 +23,14 @@ Model Gateway / Tool Registry / Guardrail / RAG / Memory / Audit
 - LangGraph只保存工作流内部节点状态，并通过引用挂接到平台RunState。
 - 工具、安全、权限和数据访问不能被LangGraph节点绕过。
 
+### Java状态兼容约定
+
+- Python领域模型接受snake_case和Java camelCase输入，对外持久化始终输出camelCase。
+- Java消息中的`toolCalls`与`toolResponses`允许为`null`，Python不会擅自改为空数组。
+- 时间同时接受Spring Boot的ISO-8601字符串和Jackson启用时间戳时的数值格式。
+- Python的每次Run步数保存在`metadata.runStepCount`，Java顶层`stepCount`继续表示会话累计值。
+- 未识别的Java扩展字段读取后原样保留，避免滚动迁移期间丢失状态。
+
 ## 兼容目标
 
 - 保留现有REST与SSE事件语义。
