@@ -1,27 +1,27 @@
-"""Shared domain models for both agent engines."""
+"""Shared Python-native domain models for both agent engines."""
 
 from myagent.domain.state import (
     AgentStatus,
     ChatMessage,
-    MessageType,
+    MessageRole,
     ThreadState,
     TodoItem,
     TodoStatus,
     TokenUsage,
-    ToolCallData,
-    ToolCallRecord,
-    ToolResponseData,
+    ToolAuditEntry,
+    ToolCall,
+    ToolResult,
 )
 
 __all__ = [
     "AgentStatus",
     "ChatMessage",
-    "MessageType",
+    "MessageRole",
     "ThreadState",
     "TodoItem",
     "TodoStatus",
     "TokenUsage",
-    "ToolCallData",
-    "ToolCallRecord",
-    "ToolResponseData",
+    "ToolAuditEntry",
+    "ToolCall",
+    "ToolResult",
 ]

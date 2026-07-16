@@ -23,18 +23,18 @@ Model Gateway / Tool Registry / Guardrail / RAG / Memory / Audit
 - LangGraph只保存工作流内部节点状态，并通过引用挂接到平台RunState。
 - 工具、安全、权限和数据访问不能被LangGraph节点绕过。
 
-### Java状态兼容约定
+### Python原生状态约定
 
-- Python领域模型接受snake_case和Java camelCase输入，对外持久化始终输出camelCase。
-- Java消息中的`toolCalls`与`toolResponses`允许为`null`，Python不会擅自改为空数组。
-- 时间同时接受Spring Boot的ISO-8601字符串和Jackson启用时间戳时的数值格式。
-- Python的每次Run步数保存在`metadata.runStepCount`，Java顶层`stepCount`继续表示会话累计值。
-- 未识别的Java扩展字段读取后原样保留，避免滚动迁移期间丢失状态。
+- 所有模型使用Pydantic严格校验和snake_case字段，不提供Java命名别名。
+- thread_id使用UUID，时间使用带时区datetime，状态枚举序列化为小写字符串。
+- 工具参数和结果直接保存结构化JSON，不在领域层传递JSON字符串。
+- Token字段采用input_tokens、output_tokens和total_tokens，便于对接LangChain/LangGraph使用元数据。
+- run_step_count与total_step_count均为正式字段，分别表达本次Run和Thread累计步数。
+- 未知状态字段直接拒绝，Schema演进通过显式schema_version和迁移函数完成。
 
-## 兼容目标
+## 项目边界
 
-- 保留现有REST与SSE事件语义。
-- 能读取Java版ThreadState JSON。
-- 复用现有MySQL、Redis、Milvus和Elasticsearch数据。
-- Java与Python迁移期间不能同时执行同一个Thread。
+- Python版拥有独立的REST、SSE、状态和数据Schema，不读取Java ThreadState。
+- 可选择复用MySQL、Redis、Milvus和Elasticsearch基础设施，但使用独立命名空间和迁移版本。
+- Java目录只作为本地业务参考，不参与构建、测试、提交或运行。
 

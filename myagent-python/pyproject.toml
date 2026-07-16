@@ -1,7 +1,7 @@
 [project]
 name = "myagent-python"
 version = "0.1.0"
-description = "Python migration of MyAgent with a native agent runtime and LangGraph workflows"
+description = "Python-native agent platform with a native runtime and LangGraph workflows"
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
 dependencies = [

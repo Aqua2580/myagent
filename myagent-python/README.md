@@ -1,6 +1,6 @@
 # MyAgent Python
 
-MyAgent 的 Python 迁移版本。该子项目与现有 Java 项目隔离开发，不修改原有源文件。
+MyAgent 是面向Python生态重新设计的Agent平台，不承担Java接口、状态或数据结构兼容责任。Java目录仅保留在本地作为业务参考，Python项目独立开发和演进。
 
 目标架构包含两个执行引擎：
 
@@ -11,12 +11,13 @@ MyAgent 的 Python 迁移版本。该子项目与现有 Java 项目隔离开发�
 
 ## 当前进度
 
-已完成第一步工程骨架：
+已完成工程骨架和Python原生运行状态模型：
 
 - FastAPI 应用工厂
 - 类型安全的基础配置
 - `/health/live` 和 `/health/ready`
 - 基础自动化测试与静态检查配置
+- Pydantic严格领域模型、Python原生状态Fixture与序列化约束
 - 持续更新的迁移日志
 
 详细记录见 [迁移日志](docs/MIGRATION_LOG.md)。
@@ -48,5 +49,5 @@ uv run mypy
 
 - 真实密钥不得写入仓库。
 - 本地配置放入 `.env`，仓库只保留 `.env.example`。
-- Python 代码只能位于本子项目目录，迁移期间不修改原 Java 源文件。
+- Python代码只能位于本子项目目录，不修改本地保留的Java源文件。
 

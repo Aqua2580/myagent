@@ -1,185 +1,191 @@
-"""Java-compatible conversation and agent state models."""
+"""Python-native conversation and agent runtime state models."""
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any, Self
-from uuid import uuid4
+from typing import Literal, Self
+from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-from pydantic.alias_generators import to_camel
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_validator
 
 
-class JavaCompatibleModel(BaseModel):
-    """Base model that reads Python names and emits Java camelCase names."""
+class DomainModel(BaseModel):
+    """Strict base model shared by runtime state objects."""
 
     model_config = ConfigDict(
-        alias_generator=to_camel,
-        extra="allow",
-        populate_by_name=True,
+        extra="forbid",
         validate_assignment=True,
     )
 
-    def to_java_dict(self) -> dict[str, Any]:
-        """Serialize with the field names expected by the Java ObjectMapper."""
-
-        return self.model_dump(mode="json", by_alias=True, exclude_none=False)
-
-    def to_java_json(self) -> str:
-        """Serialize as compact JSON accepted by the Java state reader."""
-
-        return self.model_dump_json(by_alias=True, exclude_none=False)
-
 
 class AgentStatus(StrEnum):
-    RUNNING = "RUNNING"
-    WAITING_CONFIRMATION = "WAITING_CONFIRMATION"
-    COMPLETED = "COMPLETED"
-    PARTIAL_COMPLETED = "PARTIAL_COMPLETED"
-    ERROR = "ERROR"
+    RUNNING = "running"
+    WAITING_CONFIRMATION = "waiting_confirmation"
+    COMPLETED = "completed"
+    PARTIAL_COMPLETED = "partial_completed"
+    ERROR = "error"
+    CANCELLED = "cancelled"
 
 
-class MessageType(StrEnum):
-    USER = "USER"
-    SYSTEM = "SYSTEM"
-    ASSISTANT = "ASSISTANT"
-    TOOL = "TOOL"
+class MessageRole(StrEnum):
+    USER = "user"
+    SYSTEM = "system"
+    ASSISTANT = "assistant"
+    TOOL = "tool"
 
 
 class TodoStatus(StrEnum):
-    PENDING = "PENDING"
-    IN_PROGRESS = "IN_PROGRESS"
-    COMPLETED = "COMPLETED"
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
 
 
-class ToolCallData(JavaCompatibleModel):
-    id: str
-    type: str
-    name: str
-    arguments: str
+class ToolCall(DomainModel):
+    id: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    arguments: dict[str, JsonValue] = Field(default_factory=dict)
 
 
-class ToolResponseData(JavaCompatibleModel):
-    id: str
-    name: str
-    response_data: str
+class ToolResult(DomainModel):
+    tool_call_id: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    content: JsonValue
+    is_error: bool = False
 
 
-class ChatMessage(JavaCompatibleModel):
-    type: MessageType
+class ChatMessage(DomainModel):
+    role: MessageRole
     content: str | None = None
-    tool_calls: list[ToolCallData] | None = None
-    tool_responses: list[ToolResponseData] | None = None
+    tool_calls: list[ToolCall] = Field(default_factory=list)
+    tool_results: list[ToolResult] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_role_payload(self) -> Self:
+        if self.tool_calls and self.role is not MessageRole.ASSISTANT:
+            raise ValueError("tool_calls are only valid on assistant messages")
+        if self.tool_results and self.role is not MessageRole.TOOL:
+            raise ValueError("tool_results are only valid on tool messages")
+        return self
 
     @classmethod
     def user(cls, content: str) -> Self:
-        return cls(type=MessageType.USER, content=content)
+        return cls(role=MessageRole.USER, content=content)
 
     @classmethod
     def system(cls, content: str) -> Self:
-        return cls(type=MessageType.SYSTEM, content=content)
+        return cls(role=MessageRole.SYSTEM, content=content)
 
     @classmethod
     def assistant(
         cls,
-        content: str | None,
-        tool_calls: list[ToolCallData] | None = None,
+        content: str | None = None,
+        *,
+        tool_calls: list[ToolCall] | None = None,
     ) -> Self:
-        return cls(type=MessageType.ASSISTANT, content=content, tool_calls=tool_calls)
+        return cls(
+            role=MessageRole.ASSISTANT,
+            content=content,
+            tool_calls=tool_calls or [],
+        )
 
     @classmethod
-    def tool(cls, responses: list[ToolResponseData]) -> Self:
-        return cls(type=MessageType.TOOL, tool_responses=responses)
+    def tool(cls, results: list[ToolResult]) -> Self:
+        return cls(role=MessageRole.TOOL, tool_results=results)
 
 
-class ToolCallRecord(JavaCompatibleModel):
-    tool_call_id: str
-    tool_name: str
-    arguments: str
-    result: str | None = None
-    error: str | None = None
-    called_at: datetime | None = None
+class ToolAuditEntry(DomainModel):
+    call: ToolCall
+    result: ToolResult | None = None
+    started_at: datetime
+    finished_at: datetime | None = None
+    duration_ms: int | None = Field(default=None, ge=0)
+
+    @field_validator("started_at", "finished_at")
+    @classmethod
+    def datetimes_must_be_timezone_aware(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            raise ValueError("datetime must include timezone information")
+        return value
 
 
-class TokenUsage(JavaCompatibleModel):
-    prompt_tokens: int = Field(default=0, ge=0)
-    completion_tokens: int = Field(default=0, ge=0)
+class TokenUsage(DomainModel):
+    input_tokens: int = Field(default=0, ge=0)
+    output_tokens: int = Field(default=0, ge=0)
     total_tokens: int = Field(default=0, ge=0)
 
     def accumulate(
         self,
-        prompt_tokens: int | None,
-        completion_tokens: int | None,
+        *,
+        input_tokens: int = 0,
+        output_tokens: int = 0,
         total_tokens: int | None = None,
     ) -> None:
-        """Mirror Java TokenUsage.accumulate while tolerating missing provider values."""
-
-        prompt = prompt_tokens or 0
-        completion = completion_tokens or 0
-        total = total_tokens if total_tokens is not None else prompt + completion
-        self.prompt_tokens += prompt
-        self.completion_tokens += completion
+        total = total_tokens if total_tokens is not None else input_tokens + output_tokens
+        self.input_tokens += input_tokens
+        self.output_tokens += output_tokens
         self.total_tokens += total
 
 
-class TodoItem(JavaCompatibleModel):
-    id: str
-    title: str
-    status: TodoStatus
+class TodoItem(DomainModel):
+    id: str = Field(min_length=1)
+    title: str = Field(min_length=1)
+    status: TodoStatus = TodoStatus.PENDING
 
 
-class ThreadState(JavaCompatibleModel):
-    """Serializable state shared by NativeAgentEngine and the platform layer."""
+class ThreadState(DomainModel):
+    """Platform-owned state shared by Native and LangGraph engine adapters."""
 
-    thread_id: str
-    user_id: str
+    schema_version: Literal[1] = 1
+    thread_id: UUID
+    user_id: str = Field(min_length=1)
     messages: list[ChatMessage] = Field(default_factory=list)
-    tool_calls: list[ToolCallRecord] = Field(default_factory=list)
-    step_count: int = Field(default=0, ge=0)
+    tool_audit: list[ToolAuditEntry] = Field(default_factory=list)
+    total_step_count: int = Field(default=0, ge=0)
+    run_step_count: int = Field(default=0, ge=0)
     status: AgentStatus = AgentStatus.RUNNING
     token_usage: TokenUsage = Field(default_factory=TokenUsage)
     todos: list[TodoItem] = Field(default_factory=list)
-    created_at: datetime | None = None
-    updated_at: datetime | None = None
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    metadata: dict[str, JsonValue] = Field(default_factory=dict)
 
-    @field_validator("thread_id", "user_id")
+    @field_validator("user_id")
     @classmethod
-    def identifiers_must_not_be_blank(cls, value: str) -> str:
-        if not value.strip():
-            raise ValueError("identifier must not be blank")
+    def user_id_must_not_be_blank(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("user_id must not be blank")
+        return stripped
+
+    @field_validator("created_at", "updated_at")
+    @classmethod
+    def state_datetimes_must_be_timezone_aware(cls, value: datetime) -> datetime:
+        if value.tzinfo is None:
+            raise ValueError("datetime must include timezone information")
         return value
 
     @classmethod
     def new_thread(cls, user_id: str) -> Self:
-        """Create a valid state without adding Python-only top-level JSON fields."""
-
         now = datetime.now(UTC)
         return cls(
-            thread_id=str(uuid4()),
+            thread_id=uuid4(),
             user_id=user_id,
             created_at=now,
             updated_at=now,
-            metadata={"stateSchemaVersion": 2, "runStepCount": 0},
         )
 
-    @property
-    def run_step_count(self) -> int:
-        """Return the per-run counter stored inside Java-compatible metadata."""
-
-        value = self.metadata.get("runStepCount", 0)
-        return int(value) if isinstance(value, int | float | str) else 0
-
-    def reset_run(self) -> None:
-        """Reset only per-run control data; preserve cumulative Java stepCount."""
-
-        self.metadata["runStepCount"] = 0
-        self.metadata.pop("stepWarningInjected", None)
+    def start_run(self) -> None:
+        self.run_step_count = 0
+        self.status = AgentStatus.RUNNING
+        self.metadata.pop("step_warning_injected", None)
+        self.updated_at = datetime.now(UTC)
 
     def increment_step_count(self) -> None:
-        """Increment cumulative and per-run counters and refresh updatedAt."""
-
-        self.step_count += 1
-        self.metadata["runStepCount"] = self.run_step_count + 1
+        self.total_step_count += 1
+        self.run_step_count += 1
         self.updated_at = datetime.now(UTC)
+
+    def to_json(self) -> str:
+        return self.model_dump_json()

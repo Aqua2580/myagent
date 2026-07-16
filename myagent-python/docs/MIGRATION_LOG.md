@@ -41,57 +41,60 @@
 - 首次验证发现包缺少PEP 561类型标记，已增加`src/myagent/py.typed`并重新通过mypy。
 - uv的Python安装目录和缓存均限制在本子项目内，不写入原项目源代码。
 
-### 已知阻塞
+### 发布说明
 
 - 系统级GitHub CLI自动安装未成功，已改为在`.tools/`安装官方便携版GitHub CLI 2.94.0；该目录已被Git忽略。
-- GitHub CLI尚未获得用户授权。需要执行`gh auth login --hostname github.com --git-protocol https --web`后才能初始化发布流程。
-- 按照发布规范，认证完成前不执行GitHub提交或推送。
+- 已确认GitHub CLI账户`Aqua2580`认证有效，Step 1已发布到草稿PR #1。
 
 ### 下一步
 
-Step 2将建立Java/Python兼容的领域模型和状态Fixture，包括AgentStatus、ChatMessage、ToolCall、TokenUsage与ThreadState。
+Step 2建立Python原生领域模型和状态Fixture，包括AgentStatus、ChatMessage、ToolCall、TokenUsage与ThreadState。
 
-## Step 2：Java兼容领域模型与状态Fixture
+## Step 2：Python原生领域模型与状态Fixture
 
 - 日期：2026-07-16
-- 状态：完成并通过自动化验证
-- 置信度：96%
+- 状态：完成并通过自动化验证，等待发布
+- 置信度：97%
+
+### 决策变更
+
+- 用户明确要求停止Java适配，将项目设计为完全符合Python生态的独立实现。
+- 提交`58a516a`中的Java兼容模型由本次重构取代，不再作为后续接口约束。
 
 ### 完成内容
 
-- 建立AgentStatus、MessageType、TodoStatus枚举。
-- 建立ChatMessage、ToolCallData、ToolResponseData与ToolCallRecord。
-- 建立TokenUsage、TodoItem和ThreadState。
-- 所有持久化字段使用Java camelCase，同时允许Python snake_case构造。
-- 支持ISO-8601和Jackson数值时间戳。
-- 将Python专用runStepCount放入metadata，避免增加Java未知顶层字段。
-- 保留未知扩展字段，支持滚动迁移期间的前后兼容。
-- 增加COMPLETED和WAITING_CONFIRMATION两组Java形状Fixture。
+- 全部领域字段改为snake_case，枚举值改为小写。
+- thread_id改为UUID，所有状态时间强制包含时区。
+- 工具参数和结果改为结构化JSON对象。
+- Token字段改为input_tokens、output_tokens和total_tokens。
+- run_step_count与total_step_count改为正式顶层字段。
+- Pydantic配置改为extra=forbid，未知状态必须通过显式Schema迁移处理。
+- 增加cancelled状态，为asyncio任务取消和LangGraph工作流取消预留语义。
+- Fixture改为Python原生COMPLETED与WAITING_CONFIRMATION状态。
 
 ### 验证清单
 
-- [x] Java COMPLETED状态读取与往返
-- [x] Java WAITING_CONFIRMATION状态读取与往返
-- [x] Tool Call和Tool Response语义保持
-- [x] 未知扩展字段保持
-- [x] camelCase输出且保留显式null
-- [x] runStepCount与累计stepCount分离
-- [x] pytest：14项全部通过
+- [x] Python原生状态读取与往返
+- [x] UUID、带时区datetime和小写枚举
+- [x] 结构化Tool Call与Tool Result
+- [x] 未知字段拒绝
+- [x] 消息Role载荷约束
+- [x] run与total步数分离
+- [x] pytest：15项全部通过
 - [x] Ruff：全部通过
 - [x] mypy：严格模式通过，7个源文件无问题
-- [x] 序列化专项审计通过，Python顶层字段未泄漏
-- [x] 新增内容敏感密钥模式扫描命中0个
-- [x] 更新GitHub草稿PR，提交`58a516a`
+- [x] 新增内容高置信度敏感密钥模式扫描命中0个
+- [ ] 更新GitHub草稿PR
 
 ### 验证说明
 
-- Fixture依据Java领域类、Jackson字段命名和现有`ThreadStateSerializationTest`构造，覆盖ISO与数值时间戳。
-- 当前环境没有Java/Maven运行时，因此本步骤没有现场生成新的Java JSON；这一限制保留为后续跨语言合约CI的增强项。
-- FastAPI TestClient仍有已记录的上游Starlette弃用提示，与本步骤领域模型无关。
+- 两组Python原生Fixture覆盖完成态、等待确认态、工具调用、工具结果、审计记录和Token统计。
+- 序列化专项测试确认输出只使用snake_case字段和小写枚举，并可恢复UUID与带时区datetime。
+- FastAPI TestClient仍有一条已记录的上游Starlette弃用提示，与领域模型无关，不影响测试通过。
 
 ### 下一步
 
-Step 3将迁移MySQL实体、Redis热状态和MySQL冷归档Checkpointer。
+Step 3将建立Python原生SQLAlchemy实体、Redis Checkpointer与独立Alembic Schema。
 
 ## Repository Step：双目录重组
 
