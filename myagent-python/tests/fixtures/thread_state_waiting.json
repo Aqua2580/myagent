@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "thread_id": "22222222-2222-4222-8222-222222222222",
+  "user_id": "user-002",
+  "messages": [
+    {
+      "role": "user",
+      "content": "执行受控运维操作",
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-shell-1",
+          "name": "sandbox_command",
+          "arguments": {
+            "command_id": "list_workspace"
+          }
+        }
+      ],
+      "tool_results": []
+    }
+  ],
+  "tool_audit": [],
+  "total_step_count": 0,
+  "run_step_count": 0,
+  "status": "waiting_confirmation",
+  "token_usage": {
+    "input_tokens": 30,
+    "output_tokens": 12,
+    "total_tokens": 42
+  },
+  "todos": [],
+  "created_at": "2026-07-16T02:00:00Z",
+  "updated_at": "2026-07-16T02:00:01Z",
+  "metadata": {
+    "pending_confirmation": {
+      "tool_call_id": "call-shell-1",
+      "requested_by": "user-002"
+    }
+  }
+}

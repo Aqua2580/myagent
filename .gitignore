@@ -1,0 +1,44 @@
+# Codex workspace metadata
+.agents/
+
+# Local Java reference project (never publish to the Python repository)
+myagent-java/
+
+# Secrets
+**/.env
+**/.env.*
+!**/.env.example
+
+# Python local state
+**/.venv/
+**/.uv-cache/
+**/.uv-python/
+**/.tools/
+**/__pycache__/
+**/.pytest_cache/
+**/pytest-cache-files-*/
+**/.mypy_cache/
+**/.ruff_cache/
+
+# Java build output
+**/target/
+**/*.class
+**/*.jar
+**/*.war
+
+# Runtime data and logs
+**/docker/*/data/
+**/logs/
+**/*.log
+
+# IDE and local assistant state
+**/.idea/
+**/.vscode/
+**/.trae/
+**/.trae-html-share-packages/
+**/.workbuddy/
+**/.uploads/
+
+# Operating system
+**/.DS_Store
+**/Thumbs.db
